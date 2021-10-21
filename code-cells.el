@@ -55,6 +55,7 @@
 (require 'json)
 (require 'pulse)
 (require 'subr-x)
+(require 'seq)
 (eval-when-compile (require 'rx))
 
 (defgroup code-cells nil
@@ -196,9 +197,17 @@ COMMAND."
 
 (defun my-python-shell-send-region (start end &optional send-main msg)
   (let ((s (buffer-substring start end)))
+    (setq s (replace-regexp-in-string "# %%$" "" s))
+    (setq s (replace-regexp-in-string "\n\n" "\n" s))
+    (setq lines (split-string s "\n"))
+    ;; trim if too many lines
+    (if (> (length lines) 7)
+	(setq s (concat
+		 (string-join (seq-subseq lines 0 6) "\n")
+		 "\n------- [trimmed] -------"))
+      (setq s (concat s "-------------------------")))
     (with-current-buffer (python-shell-get-buffer)
-      (insert (replace-regexp-in-string "# %%$" "" s))
-      (insert "----------------------------------------\n")
+      (insert s)
       (comint-set-process-mark)))
   (python-shell-send-region start end send-main msg)
   (with-current-buffer (python-shell-get-buffer)
