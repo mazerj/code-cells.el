@@ -56,7 +56,9 @@
 (require 'pulse)
 (require 'subr-x)
 (require 'seq)
-(eval-when-compile (require 'rx))
+(eval-when-compile
+  (require 'cl-lib)
+  (require 'rx))
 
 (defgroup code-cells nil
   "Utilities for code split into cells."
@@ -195,7 +197,11 @@ COMMAND."
 
 ;;; Code evaluation
 
-(defun my-python-shell-send-region (start end &optional send-main msg)
+(defun python-shell-send-region-with-show-input (start end &optional send-main msg)
+  ;; version of python-shell-send-region that inserted cell input
+  ;; into the buffer ahead of the output, trimming first if long
+  ;; this makes notebook a bit more readable -- can see in/out
+  ;;; instead of just out
   (let ((s (buffer-substring start end)))
     (setq s (replace-regexp-in-string "# %%$" "" s))
     (setq s (replace-regexp-in-string "\n\n" "\n" s))
@@ -204,10 +210,11 @@ COMMAND."
     (if (> (length lines) 7)
 	(setq s (concat
 		 (string-join (seq-subseq lines 0 6) "\n")
-		 "\n------- [trimmed] -------"))
-      (setq s (concat s "-------------------------")))
+		 "\n------- [trimmed] -------\n"))
+      (setq s (concat s "-------------------------\n")))
     (with-current-buffer (python-shell-get-buffer)
-      (insert s)
+      ;(insert s)
+      (insert-before-markers s)
       (comint-set-process-mark)))
   (python-shell-send-region start end send-main msg)
   (with-current-buffer (python-shell-get-buffer)
@@ -215,7 +222,7 @@ COMMAND."
 
 (defcustom code-cells-eval-region-commands
   '((jupyter-repl-interaction-mode . jupyter-eval-region)
-    (python-mode . my-python-shell-send-region)
+    (python-mode . python-shell-send-region-with-show-input)
     (emacs-lisp-mode . eval-region)
     (lisp-interaction-mode . eval-region))
   "Alist of commands to evaluate a region.
@@ -281,7 +288,7 @@ level."
                        0)))
     (+ cell-level mm-level)))
 
-(defface code-cells-header-line '((t :extend t :inherit header-line))
+(defface code-cells-header-line '((t :extend t :overline t :inherit font-lock-comment-face))
   "Face used by `code-cells-mode' to highlight cell boundaries.")
 
 (defun code-cells--font-lock-keywords ()
