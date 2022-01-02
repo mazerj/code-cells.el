@@ -55,7 +55,6 @@
 (require 'json)
 (require 'pulse)
 (require 'subr-x)
-(require 'seq)
 (eval-when-compile
   (require 'cl-lib)
   (require 'rx))
@@ -202,7 +201,8 @@ COMMAND."
   ;; into the buffer ahead of the output, trimming first if long
   ;; this makes notebook a bit more readable -- can see in/out
   ;;; instead of just out
-  (let ((s (buffer-substring start end)))
+  (let ((s (buffer-substring start end))
+	(lines nil))
     (setq s (replace-regexp-in-string "# %%$" "" s))
     (setq s (replace-regexp-in-string "\n\n" "\n" s))
     (setq lines (split-string s "\n"))
@@ -218,7 +218,7 @@ COMMAND."
       (comint-set-process-mark)))
   (python-shell-send-region start end send-main msg)
   (with-current-buffer (python-shell-get-buffer)
-    (end-of-buffer)))
+    (goto-char (point-max))))
 
 (defcustom code-cells-eval-region-commands
   '((jupyter-repl-interaction-mode . jupyter-eval-region)
